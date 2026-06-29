@@ -1,0 +1,375 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local function safeDestroy(name)
+	local g = playerGui:FindFirstChild(name)
+	if g then g:Destroy() end
+end
+safeDestroy("AutoTypingOverlay")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AutoTypingOverlay"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1,0,1,0)
+bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
+bg.BorderSizePixel = 0
+bg.Parent = gui
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.BackgroundTransparency = 1
+textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+textLabel.Font = Enum.Font.Code
+textLabel.TextSize = 20
+textLabel.TextXAlignment = Enum.TextXAlignment.Left
+textLabel.TextYAlignment = Enum.TextYAlignment.Top
+textLabel.TextWrapped = true
+textLabel.Text = ""
+textLabel.Parent = bg
+
+local textContents = {
+[[
+-- Bom2/lua Script Gui
+[NETWORK] Connecting to data node...
+[NETWORK] Node found: 192.168.4.12
+[NETWORK] Sending handshake request...
+[AUTH] Session key granted.
+[DOWNLOAD] Retrieving user memory package...
+[DOWNLOAD] Chunk 1/5 complete (6.2 MB)
+[DOWNLOAD] Chunk 2/5 complete (12.4 MB)
+[CHECKSUM] Validating... OK
+[INFO] Transferring to volatile storage... Ready.
+]]
+}
+
+local textContent = textContents[1]
+local chars = {}
+for _, cp in utf8.codes(textContent) do table.insert(chars, utf8.char(cp)) end
+local totalChars = #chars
+
+repeat task.wait() until textLabel.AbsoluteSize.X > 0
+textLabel.TextTransparency = 1
+TweenService:Create(textLabel, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+
+local lastIndex = 0
+local startTime = tick()
+local typeDuration = 1.5
+local typeConn
+
+typeConn = RunService.RenderStepped:Connect(function()
+	local elapsed = tick() - startTime
+	local progress = math.clamp(elapsed / typeDuration, 0, 1)
+	local target = math.floor(progress * totalChars)
+	if target > lastIndex then
+		lastIndex = target
+		textLabel.Text = table.concat(chars, "", 1, target)
+	end
+	if progress >= 1 then
+		typeConn:Disconnect()
+		task.wait(0.3)
+		textLabel.Text = ""
+		
+		local loadingLabel = Instance.new("TextLabel", bg)
+		loadingLabel.Size = UDim2.new(0,300,0,22)
+		loadingLabel.AnchorPoint = Vector2.new(0.5,1)
+		loadingLabel.Position = UDim2.new(0.5,0,0.5,-18)
+		loadingLabel.BackgroundTransparency = 1
+		loadingLabel.TextColor3 = Color3.fromRGB(255,0,0)
+		loadingLabel.Font = Enum.Font.Code
+		loadingLabel.TextSize = 18
+		loadingLabel.Text = "Loading: 0%"
+		
+		local container = Instance.new("Frame", bg)
+		container.Size = UDim2.new(0.66,0,0,12)
+		container.AnchorPoint = Vector2.new(0.5,0.5)
+		container.Position = UDim2.new(0.5,0,0.5,0)
+		container.BackgroundTransparency = 1
+		Instance.new("UIStroke", container).Color = Color3.new(255,0,0)
+		
+		local fill = Instance.new("Frame", container)
+		fill.Size = UDim2.new(0,0,1,0)
+		fill.BackgroundColor3 = Color3.new(255,0,0)
+		fill.BorderSizePixel = 0
+		
+		local percent = 0
+		local lastUpdate = tick()
+		local loadingConn
+		loadingConn = RunService.RenderStepped:Connect(function()
+			if percent >= 100 then
+				loadingConn:Disconnect()
+				gui:Destroy()
+				-- Gọi kích hoạt phần 2
+				if _G.StartMainHub then _G.StartMainHub() end
+				return
+			end
+			local delta = tick() - lastUpdate
+			percent = math.min(100, percent + math.ceil((delta / 1.2) * 100))
+			loadingLabel.Text = "Loading: "..percent.."%"
+			fill.Size = UDim2.new(percent/100, 0, 1, 0)
+			lastUpdate = tick()
+		end)
+	end
+end)
+local Players = game:GetService("Players")
+local TextService = game:GetService("TextService")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local function safeDestroy(name)
+	local g = playerGui:FindFirstChild(name)
+	if g then g:Destroy() end
+end
+safeDestroy("Bom2dev")
+
+local SaveFileName = "Bom2devNgonNgu.json"
+local function loadLang()
+	local data = {lang = "en"}
+	pcall(function()
+		if readfile and isfile and isfile(SaveFileName) then
+			local raw = readfile(SaveFileName)
+			local ok, dec = pcall(function() return HttpService:JSONDecode(raw) end)
+			if ok and type(dec) == "table" and dec.lang then data = dec end
+		end
+	end)
+	return data
+end
+
+local savedLang = loadLang()
+local currentLanguage = savedLang.lang or "en"
+
+local funcFrameRef, searchBoxRef, ContentRef, titleRef
+
+local function getText(t)
+	if type(t) == "table" then return t[currentLanguage] or t.en or "" end
+	return tostring(t or "")
+end
+
+local functions = {
+	{Text = {vn = "Trang Chủ", en = "Home"}, Scripts = {
+		{Text = {vn = "God Mode", en = "God Mode"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/Ac24jXYy/raw", true))()]]},
+		{Text = {vn = "Tàng Hình", en = "Invisible"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/SSptTzdf/raw", true))()]]},
+		{Text = {vn = "Bay", en = "Fly"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/2h4uOI4u/raw", true))()]]},
+		{Text = {vn = "Tốc Độ", en = "Speed"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/MuRMXXRN/raw", true))()]]},
+		{Text = {vn = "Nhảy Cao", en = "JumpPower"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/1ltBn9nO/raw", true))()]]},
+		{Text = {vn = "Nhảy Vô Hạn", en = "Infinite Jump"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/EBy2hp0a/raw", true))()]]},
+		{Text = {vn = "Đi Trên Không V2", en = "Walking on Air V2"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/JK1fZSRf/raw", true))()]]},
+		{Text = {vn = "Tăng Tầm Xa Camera", en = "Camera Range"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/fGBgPLHu/raw", true))()]]},
+		{Text = {vn = "Xuyên Tường", en = "No clips"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/Wr5US7vh/raw", true))()]]},
+		{Text = {vn = "Nhìn Trong Tối", en = "Night Vision"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/pMYszXDv/raw", true))()]]},
+		{Text = {vn = "Tốc Biến", en = "Flash"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/2OEC9SvA/raw", true))()]]},
+		{Text = {vn = "Tua Ngược", en = "Reverse"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/hWw2uzeh/raw", true))()]]},
+		{Text = {vn = "Nhân Đôi Tool", en = "Dupe Tool"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/JqBhjgQP/raw", true))()]]},
+	}},
+	{Text = {vn = "Bầu Trời", en = "Sky"}, Scripts = {
+		{Text = {vn = "Tím", en = "Purple"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/OzMbwM6R/raw", true))()]]},
+		{Text = {vn = "Hồng", en = "Pink"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/5ZfHKxpn/raw", true))()]]},
+		{Text = {vn = "Đỏ", en = "Red"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/384ep7A7/raw", true))()]]},
+		{Text = {vn = "Cam", en = "Orange"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/txTKOULw/raw", true))()]]},
+		{Text = {vn = "Trắng", en = "White"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/XFyGbhjs/raw", true))()]]},
+		{Text = {vn = "Vàng", en = "Yellow"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/5aeOfLjr/raw", true))()]]},
+		{Text = {vn = "Xanh Dương", en = "Blue"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/1rojDnHp/raw", true))()]]},
+		{Text = {vn = "Xanh Lá", en = "Green"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/exRkmaVT/raw", true))()]]},
+		{Text = {vn = "666", en = "666"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/nOY2bEOL/raw", true))()]]},
+	}},
+	{Text = {vn = "Người Chơi", en = "Player"}, Scripts = {
+		{Text = {vn = "Aimbot Người Chơi", en = "Aimbot Player"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/OOdhJ3ps/raw", true))()]]},
+		{Text = {vn = "HitBox Người Chơi", en = "HitBox Player"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/FJuxfI4V/raw", true))()]]},
+		{Text = {vn = "Theo Dõi Người Chơi", en = "Track Player"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/M5EgY9A3/raw", true))()]]},
+		{Text = {vn = "Teleport Player", en = "Teleport Player"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/TidFDUc4/raw", true))()]]},
+		{Text = {vn = "ESP Player", en = "ESP Player"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/BA1T2aUX/raw", true))()]]},
+	}},
+	{Text = {vn = "Thế Giới", en = "World"}, Scripts = {
+		{Text = {vn = "X-ray", en = "X-ray"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/w3aSZQMu/raw", true))()]]},
+		{Text = {vn = "Xoá Sương Mù", en = "Remove Fog"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/ZDuGVeAP/raw", true))()]]},
+		{Text = {vn = "ESP NPC", en = "ESP NPC"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/eAKK1tbP/raw", true))()]]},
+	}},
+	{Text = {vn = "Giải Trí", en = "Fun"}, Scripts = {
+		{Text = {vn = "Đá Bay", en = "Fling"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/3l7M8rCk/raw", true))()]]},
+		{Text = {vn = "Fake Lag", en = "Fake Lag"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/lW6r1Opw/raw", true))()]]},
+	}},
+	{Text = {vn = "Máy Chủ", en = "Server"}, Scripts = {
+		{Text = {vn = "Chuyển Server", en = "Change Server"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/wgQD3R5E/raw", true))()]]},
+		{Text = {vn = "Vào Lại Server", en = "Rejoin Server"}, Script = [[loadstring(game:HttpGet("https://pastefy.app/OWAuyqqP/raw", true))()]]},
+	}},
+	{Text = {vn = "Ngôn Ngữ", en = "Language"}, Scripts = {
+		{Text = {vn = "Tiếng Việt", en = "Vietnamese"}, Script = [[_G.changeLanguage("vn")]]},
+		{Text = {vn = "Tiếng Anh", en = "English"}, Script = [[_G.changeLanguage("en")]]},
+	}},
+}
+
+local allScripts = {}
+local function rebuildGlobalList()
+	allScripts = {}
+	for _, f in ipairs(functions) do
+		for _, s in ipairs(f.Scripts) do table.insert(allScripts, s) end
+	end
+end
+rebuildGlobalList()
+
+local createButtons, buildFuncButtons
+
+createButtons = function(scripts)
+	if not ContentRef then return end
+	for _, child in ipairs(ContentRef:GetChildren()) do
+		if child:IsA("TextButton") or child:IsA("UIStroke") or child:IsA("UICorner") then child:Destroy() end
+	end
+	local xOffset, yOffset = 0, 0
+	local contentWidth = ContentRef.AbsoluteSize.X > 0 and ContentRef.AbsoluteSize.X or 310
+	for _, v in ipairs(scripts) do
+		local txt = getText(v.Text)
+		local tSize = TextService:GetTextSize(txt, 14, Enum.Font.GothamBold, Vector2.new(math.huge, math.huge))
+		local btnW = math.clamp(tSize.X + 24, 65, contentWidth - 10)
+		if xOffset + btnW > contentWidth then xOffset = 0 yOffset = yOffset + 41 end
+		
+		local btn = Instance.new("TextButton", ContentRef)
+		btn.Size = UDim2.new(0, btnW, 0, 35)
+		btn.Position = UDim2.new(0, xOffset, 0, yOffset)
+		btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 12
+		btn.Text = txt
+		btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+		Instance.new("UIStroke", btn).Color = Color3.fromRGB(255, 0, 0)
+		
+		btn.Activated:Connect(function()
+			if v.Script then
+				if type(v.Script) == "string" and loadstring then
+					local c = loadstring(v.Script) if c then pcall(c) end
+				end
+			end
+		end)
+		xOffset = xOffset + btnW + 6
+	end
+	ContentRef.CanvasSize = UDim2.new(0, 0, 0, yOffset + 50)
+end
+
+buildFuncButtons = function()
+	if not funcFrameRef then return end
+	for _, child in ipairs(funcFrameRef:GetChildren()) do
+		if child:IsA("TextButton") or child:IsA("UIStroke") or child:IsA("UICorner") then child:Destroy() end
+	end
+	for _, f in ipairs(functions) do
+		local btn = Instance.new("TextButton", funcFrameRef)
+		btn.Size = UDim2.new(1, -5, 0, 32)
+		btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 11
+		btn.Text = getText(f.Text)
+		btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+		Instance.new("UIStroke", btn).Color = Color3.fromRGB(255, 0, 0)
+		btn.MouseButton1Click:Connect(function()
+			if searchBoxRef then searchBoxRef.Text = "" end
+			createButtons(f.Scripts or {})
+		end)
+	end
+end
+
+_G.changeLanguage = function(lang)
+	currentLanguage = lang
+	pcall(function() if writefile then writefile(SaveFileName, HttpService:JSONEncode({lang = lang})) end end)
+	if searchBoxRef then searchBoxRef.PlaceholderText = (lang == "vn") and "Tìm Script" or "Search" end
+	rebuildGlobalList() buildFuncButtons()
+	if functions[1] then createButtons(functions[1].Scripts) end
+end
+
+_G.StartMainHub = function()
+	local gui2 = Instance.new("ScreenGui", playerGui)
+	gui2.Name = "Bom2dev"
+	gui2.IgnoreGuiInset = true
+	
+	local toggle = Instance.new("ImageButton", gui2)
+	toggle.Size = UDim2.new(0, 50, 0, 50)
+	toggle.Position = UDim2.new(0, 10, 0.5, -25)
+	toggle.BackgroundTransparency = 1
+	toggle.Image = "rbxassetid://113709284934365"
+	toggle.Active = true toggle.Draggable = true
+	Instance.new("UIStroke", toggle).Color = Color3.fromRGB(255,0,0)
+	Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,14)
+
+	local frame = Instance.new("Frame", gui2)
+	frame.Size = UDim2.new(0, 440, 0, 260)
+	frame.Position = UDim2.new(0.5, -220, 0.5, -130)
+	frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	frame.Visible = false
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
+	Instance.new("UIStroke", frame).Color = Color3.fromRGB(255, 0, 0)
+
+	local header = Instance.new("Frame", frame)
+	header.Size = UDim2.new(1, 0, 0, 40)
+	header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	Instance.new("UICorner", header).CornerRadius = UDim.new(0, 15)
+
+	local title = Instance.new("TextLabel", header)
+	title.Text = "Bom2dev Hub Cyber"
+	title.Font = Enum.Font.GothamBold title.TextSize = 15
+	title.TextColor3 = Color3.fromRGB(255, 0, 0)
+	title.Position = UDim2.new(0, 15, 0, 0)
+	title.Size = UDim2.new(0, 150, 1, 0) title.BackgroundTransparency = 1
+
+	local close = Instance.new("TextButton", header)
+	close.Text = "×" close.Font = Enum.Font.GothamBold close.TextSize = 24
+	close.TextColor3 = Color3.fromRGB(255, 0, 0)
+	close.Size = UDim2.new(0, 30, 1, 0) close.Position = UDim2.new(1, -35, 0, 0)
+	close.BackgroundTransparency = 1
+
+	searchBoxRef = Instance.new("TextBox", header)
+	searchBoxRef.Size = UDim2.new(0, 150, 0, 26)
+	searchBoxRef.Position = UDim2.new(1, -195, 0, 7)
+	searchBoxRef.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	searchBoxRef.PlaceholderText = (currentLanguage == "vn") and "Tìm Script" or "Search"
+	searchBoxRef.Text = "" searchBoxRef.Font = Enum.Font.Gotham searchBoxRef.TextSize = 12
+	searchBoxRef.TextColor3 = Color3.fromRGB(255,255,255)
+	Instance.new("UICorner", searchBoxRef).CornerRadius = UDim.new(0, 6)
+	Instance.new("UIStroke", searchBoxRef).Color = Color3.fromRGB(255,0,0)
+
+	funcFrameRef = Instance.new("ScrollingFrame", frame)
+	funcFrameRef.Size = UDim2.new(0, 100, 1, -50)
+	funcFrameRef.Position = UDim2.new(0, 8, 0, 45)
+	funcFrameRef.BackgroundTransparency = 1 funcFrameRef.ScrollBarThickness = 2
+	local funcLayout = Instance.new("UIListLayout", funcFrameRef)
+	funcLayout.Padding = UDim.new(0, 6)
+
+	ContentRef = Instance.new("ScrollingFrame", frame)
+	ContentRef.Size = UDim2.new(1, -125, 1, -50)
+	ContentRef.Position = UDim2.new(0, 115, 0, 45)
+	ContentRef.BackgroundTransparency = 1 ContentRef.ScrollBarThickness = 3
+
+	ContentRef:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		if functions[1] then createButtons(functions[1].Scripts) end
+	end)
+	funcLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		funcFrameRef.CanvasSize = UDim2.new(0, 0, 0, funcLayout.AbsoluteContentSize.Y + 10)
+	end)
+	searchBoxRef:GetPropertyChangedSignal("Text"):Connect(function()
+		local q = string.lower(searchBoxRef.Text or "")
+		if q == "" then if functions[1] then createButtons(functions[1].Scripts) end return end
+		local out = {}
+		for _, s in ipairs(allScripts) do
+			if string.find(string.lower(getText(s.Text)), q, 1, true) then table.insert(out, s) end
+		end
+		createButtons(out)
+	end)
+
+	local isDragging = false
+	toggle.Activated:Connect(function() if not isDragging then frame.Visible = not frame.Visible end end)
+	close.Activated:Connect(function() frame.Visible = false end)
+
+	buildFuncButtons()
+	if functions[1] then createButtons(functions[1].Scripts) end
+end
+
+-- Chạy thẳng luôn nếu không cần hiệu ứng loading
+if not playerGui:FindFirstChild("AutoTypingOverlay") then
+	_G.StartMainHub()
+end
